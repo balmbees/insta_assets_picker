@@ -68,7 +68,7 @@ class InstaAssetsCropData {
 /// The controller that handles the exportation and save the state of the selected assets crop parameters
 class InstaAssetsCropController {
   InstaAssetsCropController(this.keepMemory, this.cropDelegate)
-      : cropRatioIndex = ValueNotifier<int>(0);
+      : cropRatioIndex = ValueNotifier<int>(1);
 
   /// The index of the selected aspectRatio among the possibilities
   final ValueNotifier<int> cropRatioIndex;

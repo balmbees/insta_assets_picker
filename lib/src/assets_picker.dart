@@ -7,7 +7,7 @@ import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 
 const _kGridCount = 4;
 const _kInitializeDelayDuration = Duration(milliseconds: 250);
-const kDefaultInstaCropRatios = [1.0, 4 / 5];
+const kDefaultInstaCropRatios = [4 / 5, 1.0];
 
 class InstaAssetCropDelegate {
   const InstaAssetCropDelegate({
