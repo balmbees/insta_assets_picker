@@ -80,7 +80,7 @@ class CropViewerState extends State<CropViewer> {
                         : Alignment.bottomCenter,
                     height: widget.height,
                     width: widget.height * widget.controller.aspectRatio,
-                    image: AssetEntityImageProvider(asset, isOriginal: false),
+                    image: AssetEntityImageProvider(asset, isOriginal: true),
                     enableMemoryCache: false,
                     fit: BoxFit.cover,
                   ),
