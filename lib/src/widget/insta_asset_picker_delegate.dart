@@ -1,18 +1,12 @@
 // ignore_for_file: implementation_imports
 
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
-
-/// The reduced height of the crop view
-
-/// The position of the crop view when extended
-const _kExtendedCropViewPosition = 0.0;
-
-/// Scroll offset multiplier to start viewer position animation
 
 const _kIndicatorSize = 20.0;
 
@@ -36,44 +30,14 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
         );
 
   final String? title;
-
-  /// Should the picker be closed when the selection is confirmed
-  ///
-  /// Defaults to `false`, like instagram
   final bool closeOnComplete;
-
-  // LOCAL PARAMETERS
-  final ValueNotifier<double> _cropViewPosition = ValueNotifier<double>(0);
-
-  /// Controller handling the state of asset crop values and the exportation
-
-  @override
-  void dispose() {
-    if (!keepScrollOffset) {
-      _cropViewPosition.dispose();
-    }
-    super.dispose();
-  }
+  final Map<String, File> _cachedFileMap = {};
 
   /// Called when the confirmation [TextButton] is tapped
   void onConfirm(BuildContext context) {
     if (closeOnComplete) {
       Navigator.of(context).maybePop(provider.selectedAssets);
     }
-  }
-
-  /// Returns thumbnail [index] position in scroll view
-  double indexPosition(BuildContext context, int index) {
-    final row = (index / gridCount).floor();
-    final size =
-        (MediaQuery.of(context).size.width - itemSpacing * (gridCount - 1)) /
-            gridCount;
-    return row * size + (row * itemSpacing);
-  }
-
-  /// Unselect all the selected assets
-  void unSelectAll() {
-    provider.selectedAssets = [];
   }
 
   /// Called when the asset thumbnail is tapped
@@ -84,23 +48,12 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
     AssetEntity currentAsset,
   ) async {
     // if is preview asset, unselect it
-    if (provider.selectedAssets.isNotEmpty) {
-      selectAsset(context, currentAsset, index, true);
-      return;
-    }
-
-    selectAsset(context, currentAsset, index, false);
-  }
-
-  /// Called when an asset is selected
-  @override
-  Future<void> selectAsset(
-    BuildContext context,
-    AssetEntity asset,
-    int index,
-    bool selected,
-  ) async {
-    await super.selectAsset(context, asset, index, selected);
+    selectAsset(
+      context,
+      currentAsset,
+      index,
+      provider.selectedAssets.contains(currentAsset),
+    );
   }
 
   /// Returns the [TextButton] that open album list
@@ -191,40 +144,108 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
     );
   }
 
-  /// Returns most of the widgets of the layout, the app bar, the crop view and the grid view
-  @override
-  Widget androidLayout(BuildContext context) {
-    return ChangeNotifierProvider<DefaultAssetPickerProvider>.value(
-      value: provider,
-      builder: (context, _) => AssetPickerAppBarWrapper(
-        appBar: AssetPickerAppBar(
-          backgroundColor: theme.appBarTheme.backgroundColor,
-          title: title != null
-              ? Text(
-                  title!,
-                  style: theme.appBarTheme.titleTextStyle,
-                )
-              : null,
-          leading: backButton(context),
-          actions: <Widget>[confirmButton(context)],
-        ),
-        body: Column(
-          children: [
-            Row(
-              children: [
-                pathEntitySelector(context),
-              ],
+  Widget _pickerLayout(BuildContext context) =>
+      ChangeNotifierProvider<DefaultAssetPickerProvider>.value(
+        value: provider,
+        builder: (context, _) => AssetPickerAppBarWrapper(
+          appBar: AssetPickerAppBar(
+            backgroundColor: theme.appBarTheme.backgroundColor,
+            title: title != null
+                ? Text(
+                    title!,
+                    style: theme.appBarTheme.titleTextStyle,
+                  )
+                : null,
+            leading: backButton(context),
+            actions: <Widget>[confirmButton(context)],
+          ),
+          body: Column(children: [
+            if (context
+                .watch<DefaultAssetPickerProvider>()
+                .selectedAssets
+                .isNotEmpty)
+              _pickedAssets(context, provider.selectedAssets),
+            Expanded(
+              child: _buildGrid(context),
             ),
-            Expanded(child: _buildGrid(context)),
-          ],
+          ]),
         ),
+      );
+
+  Widget _pickedAssets(BuildContext context, List<AssetEntity> assets) {
+    removeAsset(AssetEntity asset) {
+      final index = provider.currentAssets.indexOf(asset);
+      if (index == -1) return;
+      selectAsset(context, asset, index, true);
+    }
+
+    return SizedBox(
+      height: 100,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          const SizedBox(width: 10),
+          ...assets.map(
+            (e) => _cachedFileMap[e.id] == null
+                ? FutureBuilder(
+                    key: Key(e.id),
+                    builder: (_, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.done &&
+                          snapshot.data != null) {
+                        _cachedFileMap[e.id] = snapshot.data!;
+                        return _imageWidget(
+                            snapshot.data!, () => removeAsset(e));
+                      }
+                      return const SizedBox();
+                    },
+                    future: e.file,
+                  )
+                : _imageWidget(_cachedFileMap[e.id]!, () => removeAsset(e)),
+          )
+        ],
       ),
     );
   }
 
-  /// Since the layout is the same on all platform, it simply call [androidLayout]
+  Widget _imageWidget(File file, Function() closeAction) => Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(10),
+        child: Stack(children: [
+          Image.file(
+            file,
+            width: 70,
+            height: 70,
+            fit: BoxFit.cover,
+          ),
+          Positioned(
+            right: 2,
+            top: 2,
+            child: GestureDetector(
+              onTap: () => closeAction(),
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.black38,
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 12,
+                ),
+              ),
+            ),
+          ),
+        ]),
+      );
+
+  /// Returns most of the widgets of the layout, the app bar, the crop view and the grid view
   @override
-  Widget appleOSLayout(BuildContext context) => androidLayout(context);
+  Widget androidLayout(BuildContext context) => _pickerLayout(context);
+
+  @override
+  Widget appleOSLayout(BuildContext context) => _pickerLayout(context);
 
   /// Returns the [GridView] displaying the assets
   Widget _buildGrid(BuildContext context) {
@@ -237,7 +258,6 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
           duration: const Duration(milliseconds: 300),
           child: shouldDisplayAssets
               ? MediaQuery(
-                  // fix: https://github.com/fluttercandies/flutter_wechat_assets_picker/issues/395
                   data: MediaQuery.of(context).copyWith(
                     padding: const EdgeInsets.only(top: -kToolbarHeight),
                   ),
@@ -293,7 +313,12 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
             child: isSelected && !isSingleAssetMode
                 ? GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => selectAsset(context, asset, index, isSelected),
+                    onTap: () => selectAsset(
+                      context,
+                      asset,
+                      index,
+                      selectedAssets.contains(asset),
+                    ),
                     child: innerSelector,
                   )
                 : innerSelector,
