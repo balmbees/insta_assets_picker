@@ -72,106 +72,6 @@ class InstaAssetPicker {
   static ThemeData themeData(Color? themeColor, {bool light = false}) =>
       AssetPicker.themeData(themeColor, light: light);
 
-  /// When using `restorableAssetsPicker` function, the picker's state is preserved even after pop
-  ///
-  /// ⚠️ [InstaAssetPicker] and [provider] must be disposed manually
-  ///
-  /// Set [useRootNavigator] to determine
-  /// whether the picker route should use the root [Navigator].
-  ///
-  /// By extending the [AssetPickerPageRoute], users can customize the route
-  /// and use it with the [pageRouteBuilder].
-  ///
-  /// Set [onPermissionDenied] to manually handle the denied permission error.
-  /// The default behavior is to open a [ScaffoldMessenger].
-  ///
-  /// Crop options
-  /// - Set [cropDelegate] to customize the display and export of crops.
-  ///
-  /// Those arguments are used by [InstaAssetPickerBuilder]
-  ///
-  /// - Set [provider] of type [DefaultAssetPickerProvider] to specifies picker options.
-  /// This argument is required.
-  ///
-  /// - Set [gridCount] to specifies the number of assets in the cross axis.
-  /// Defaults to [_kGridCount], like instagram.
-  ///
-  /// - Set [pickerTheme] to specifies the theme to apply to the picker.
-  /// It is by default initialized with the `primaryColor` of the context theme.
-  ///
-  /// - Set [textDelegate] to specifies the language to apply to the picker.
-  /// Default is the locale language from the context.
-  ///
-  /// - Set [title] to specifies the text title in the picker [AppBar].
-  ///
-  /// - Set [closeOnComplete] to specifies if the picker should be closed
-  /// after assets selection confirmation.
-  ///
-  /// - The [onCompleted] callback is called when the assets selection is confirmed.
-  /// It will as argument a [Stream] with exportation details [InstaAssetsExportDetails].
-  ///
-  /// - Set [loadingIndicatorBuilder] to specifies the loader indicator
-  /// to display in the picker.
-  Future<List<AssetEntity>?> restorableAssetsPicker(
-    BuildContext context, {
-    Key? key,
-    bool useRootNavigator = true,
-    AssetPickerPageRouteBuilder<List<AssetEntity>>? pageRouteBuilder,
-    Function(BuildContext context, String delegateDescription)?
-        onPermissionDenied,
-
-    /// Crop options
-    InstaAssetCropDelegate cropDelegate = const InstaAssetCropDelegate(),
-
-    /// InstaAssetPickerBuilder options
-    int gridCount = _kGridCount,
-    required DefaultAssetPickerProvider provider,
-    ThemeData? pickerTheme,
-    AssetPickerTextDelegate? textDelegate,
-    String? title,
-    bool closeOnComplete = false,
-    Widget Function(BuildContext, bool)? loadingIndicatorBuilder,
-    Widget? Function(BuildContext, AssetPathEntity?, int)? specialItemBuilder,
-    SpecialItemPosition? specialItemPosition,
-  }) async {
-    assert(provider.requestType == RequestType.image,
-        'Only images can be shown in the picker for now');
-
-    final locale = Localizations.maybeLocaleOf(context);
-    final text = textDelegate ?? assetPickerTextDelegateFromLocale(locale);
-
-    PermissionState? ps;
-    if (builder == null) {
-      try {
-        ps = await _permissionCheck();
-      } catch (e) {
-        _openErrorPermission(context, text, onPermissionDenied);
-      }
-    }
-
-    builder ??= InstaAssetPickerBuilder(
-      initialPermission: ps ?? PermissionState.denied,
-      provider: provider,
-      title: title,
-      gridCount: gridCount,
-      pickerTheme: pickerTheme ?? themeData(Theme.of(context).primaryColor),
-      locale: locale,
-      keepScrollOffset: true,
-      textDelegate: text,
-      loadingIndicatorBuilder: loadingIndicatorBuilder,
-      closeOnComplete: closeOnComplete,
-      specialItemBuilder: specialItemBuilder,
-      specialItemPosition: specialItemPosition,
-    );
-
-    return AssetPicker.pickAssetsWithDelegate(
-      context,
-      delegate: builder!,
-      useRootNavigator: useRootNavigator,
-      pageRouteBuilder: pageRouteBuilder,
-    );
-  }
-
   /// Pick assets with the given arguments.
   ///
   /// Set [useRootNavigator] to determine
@@ -201,9 +101,6 @@ class InstaAssetPicker {
   ///
   /// - Set [closeOnComplete] to specifies if the picker should be closed
   /// after assets selection confirmation.
-  ///
-  /// - The [onCompleted] callback is called when the assets selection is confirmed.
-  /// It will as argument a [Stream] with exportation details [InstaAssetsExportDetails].
   ///
   /// - Set [loadingIndicatorBuilder] to specifies the loader indicator
   /// to display in the picker.
