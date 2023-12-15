@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:insta_assets_picker/insta_assets_picker.dart';
-import 'package:insta_assets_picker_demo/widgets/crop_result_view.dart';
 
 void main() => runApp(const MyApp());
 
@@ -41,7 +40,6 @@ class _PickerScreenState extends State<PickerScreen> {
   );
 
   List<AssetEntity> selectedAssets = <AssetEntity>[];
-  InstaAssetsExportDetails? exportDetails;
 
   @override
   void dispose() {
@@ -51,25 +49,7 @@ class _PickerScreenState extends State<PickerScreen> {
   }
 
   Future<void> callRestorablePicker() async {
-    final List<AssetEntity>? result =
-        await _instaAssetsPicker.restorableAssetsPicker(
-      context,
-      title: 'Restorable',
-      closeOnComplete: true,
-      provider: _provider,
-      pickerTheme: _pickerTheme,
-      onCompleted: (cropStream) {
-        // example withtout StreamBuilder
-        cropStream.listen((event) {
-          if (mounted) {
-            setState(() {
-              exportDetails = event;
-            });
-          }
-        });
-      },
-    );
-
+    final List<AssetEntity>? result = [];
     if (result != null) {
       selectedAssets = result;
       if (mounted) {
@@ -113,15 +93,6 @@ class _PickerScreenState extends State<PickerScreen> {
                           title: 'Select images',
                           maxAssets: 10,
                           pickerTheme: _pickerTheme,
-                          onCompleted: (cropStream) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => PickerCropResultScreen(
-                                    cropStream: cropStream),
-                              ),
-                            );
-                          },
                         ),
                         child: const Text(
                           'Open the Picker',
@@ -156,42 +127,12 @@ class _PickerScreenState extends State<PickerScreen> {
                           ],
                         ),
                       ),
-                      CropResultView(
-                        selectedAssets: selectedAssets,
-                        croppedFiles: exportDetails?.croppedFiles ?? [],
-                        progress: exportDetails?.progress,
-                      )
                     ],
                   ),
                 ],
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class PickerCropResultScreen extends StatelessWidget {
-  const PickerCropResultScreen({super.key, required this.cropStream});
-
-  final Stream<InstaAssetsExportDetails> cropStream;
-
-  @override
-  Widget build(BuildContext context) {
-    final height = MediaQuery.of(context).size.height - kToolbarHeight;
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Insta picker result')),
-      body: StreamBuilder<InstaAssetsExportDetails>(
-        stream: cropStream,
-        builder: (context, snapshot) => CropResultView(
-          selectedAssets: snapshot.data?.selectedAssets ?? [],
-          croppedFiles: snapshot.data?.croppedFiles ?? [],
-          progress: snapshot.data?.progress,
-          heightFiles: height / 2,
-          heightAssets: height / 4,
         ),
       ),
     );
